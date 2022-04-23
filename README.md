@@ -1,5 +1,6 @@
-# bastion_host
+# Bastion Host And SQS VPC endpoint
 
+**Bastion Host**
 
 **What is a bastion host?**
 A bastion host is a server used to manage access to an internal or private network from an external network - sometimes called a jump box or jump server. Because bastion hosts often sit on the Internet, they typically run a minimum amount of services in order to reduce their attack surface. They are also commonly used to proxy and log communications, such as SSH sessions.
@@ -7,8 +8,6 @@ A bastion host is a server used to manage access to an internal or private netwo
 ![image](https://user-images.githubusercontent.com/74225291/164766272-fb2ec04b-399c-45b5-8e0f-9aa3ac5a61c6.png)
 
 
-
-<img width="1290" alt="image" src="https://user-images.githubusercontent.com/74225291/164766481-76f486cc-c81e-4af0-84c5-d09c4925b5c7.png">
 
 To connect to the bastion server it should have public access with a public IPv4 address, so let's launch an EC2 instance as Bastion Host.
 And one more instance as a private instance in private subnet which is not hacing any public IP associated with it.
@@ -79,7 +78,21 @@ Now connect to private instance from bastion :
 
       [ec2-user@ip-10-0-3-71 ~]$ 
 
-Here we can see that there is no access to public internet from Private instance. Now we can create SQS VPc endpoint to access the sqs queue from private instance.
+**SQS VPC Endpoint**
+
+Amazon announced that its fully managed message queuing service [Simple Queue Service (SQS)](https://aws.amazon.com/sqs/) supports Virtual Private Cloud (VPC) Endpoints using AWS PrivateLink. This enables customers to implement private access to SQS, and not have to use public IPs and traverse the public internet.
+
+<img width="674" alt="image" src="https://user-images.githubusercontent.com/74225291/164879387-faac01f5-10a1-449c-a7b9-1c66309a56c7.png">
+
+
+Create one simple SQS fifo Queue with defaul configuration.
+
+<img width="1461" alt="image" src="https://user-images.githubusercontent.com/74225291/164879274-5fde2143-ae9d-4ffc-9a0d-fcf727bf1812.png">
+
+<img width="1026" alt="image" src="https://user-images.githubusercontent.com/74225291/164879295-be9b00ce-d7ee-4b6f-8b68-cb617e28ab76.png">
+
+
+Here we can see that there is no access to public internet from Private instance. Now we can create SQS VPC endpoint to access the sqs queue from private instance.
 
 [ec2-user@ip-10-0-3-71 ~]$ curl -v https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
 *   Trying 52.95.16.58:443...
@@ -91,6 +104,11 @@ Here we can see that there is no access to public internet from Private instance
 
 
 Now we can add SQS vpc endpoint and recheck if we are able to access SQS queue or not.
+
+
+<img width="1290" alt="image" src="https://user-images.githubusercontent.com/74225291/164766481-76f486cc-c81e-4af0-84c5-d09c4925b5c7.png">
+
+
 
  <img width="1286" alt="image" src="https://user-images.githubusercontent.com/74225291/164767559-155d5bf7-0148-414a-acfa-aeb071888336.png">
 

@@ -10,9 +10,78 @@ A bastion host is a server used to manage access to an internal or private netwo
 
 <img width="1290" alt="image" src="https://user-images.githubusercontent.com/74225291/164766481-76f486cc-c81e-4af0-84c5-d09c4925b5c7.png">
 
+To connect to the bastion server it should have public access with a public IPv4 address, so let's launch an EC2 instance as Bastion Host.
+And one more instance as a private instance in private subnet which is not hacing any public IP associated with it.
 
+<img width="1466" alt="image" src="https://user-images.githubusercontent.com/74225291/164878382-c5b4c015-733c-4a4a-ae08-2760cfe11f22.png">
 
-$ curl -v https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
+Public/Bastion Instance Details:
+
+<img width="1467" alt="image" src="https://user-images.githubusercontent.com/74225291/164878410-eddfeb6c-3876-4156-91ed-a05f0cd75eb8.png">
+
+Private Instance Details: There is no Public IP associated with it.
+
+<img width="1452" alt="image" src="https://user-images.githubusercontent.com/74225291/164878430-124e692f-d62e-42e6-ac43-b636868364ff.png">
+
+Now connect to bastion host from terminal and then from this connect to private instance.
+
+      Tdaspute@INPNL000868 Downloads % ssh -i "eks-cluster.pem" ec2-user@ec2-52-14-84-9.us-east-2.compute.amazonaws.com
+      The authenticity of host 'ec2-52-14-84-9.us-east-2.compute.amazonaws.com (52.14.84.9)' can't be established.
+      ECDSA key fingerprint is SHA256:J1yjjgf1xpfCil2R9DcfU9AKJOUAO6Gh+RA7NqrzCZ0.
+      Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+      Warning: Permanently added 'ec2-52-14-84-9.us-east-2.compute.amazonaws.com,52.14.84.9' (ECDSA) to the list of known hosts.
+
+             __|  __|_  )
+             _|  (     /   Amazon Linux 2 AMI
+            ___|\___|___|
+
+      https://aws.amazon.com/amazon-linux-2/
+      -bash: warning: setlocale: LC_CTYPE: cannot change locale (UTF-8): No such file or directory
+      [ec2-user@ip-10-0-0-133 ~]$ ping amazon.com
+      PING amazon.com (205.251.242.103) 56(84) bytes of data.
+      64 bytes from s3-console-us-standard.console.aws.amazon.com (205.251.242.103): icmp_seq=1 ttl=223 time=11.6 ms
+      64 bytes from s3-console-us-standard.console.aws.amazon.com (205.251.242.103): icmp_seq=2 ttl=223 time=11.6 ms
+      64 bytes from s3-console-us-standard.console.aws.amazon.com (205.251.242.103): icmp_seq=3 ttl=223 time=11.7 ms
+      64 bytes from s3-console-us-standard.console.aws.amazon.com (205.251.242.103): icmp_seq=4 ttl=223 time=11.7 ms
+      ^C
+      --- amazon.com ping statistics ---
+      4 packets transmitted, 4 received, 0% packet loss, time 3005ms
+      rtt min/avg/max/mdev = 11.631/11.684/11.733/0.137 ms
+
+Now copy pem file from local to bastio so that we can use it to connect to private one.
+
+      Tdaspute@INPNL000868 Downloads % scp -i "eks-cluster.pem" eks-cluster.pem ec2-user@ec2-52-14-84-9.us-east-2.compute.amazonaws.com:~ 
+      /etc/profile.d/lang.sh: line 19: warning: setlocale: LC_CTYPE: cannot change locale (UTF-8): No such file or directory
+      eks-cluster.pem                                                                                                                    100% 1704     5.0KB/s   00:00    
+
+Now connect to private instance from bastion :
+
+      [ec2-user@ip-10-0-0-133 ~]$ ssh -i "eks-cluster.pem" ec2-user@10.0.3.71
+      The authenticity of host '10.0.3.71 (10.0.3.71)' can't be established.
+      ECDSA key fingerprint is SHA256:aFdPQkTJ21OMt3bntmINP3YZJqs9EeOK1B7mwEqWbbI.
+      ECDSA key fingerprint is MD5:c3:89:8a:16:44:f9:21:02:f7:fa:32:cc:39:67:f9:a2.
+      Are you sure you want to continue connecting (yes/no)? yes
+      Warning: Permanently added '10.0.3.71' (ECDSA) to the list of known hosts.
+
+             __|  __|_  )
+             _|  (     /   Amazon Linux 2 AMI
+            ___|\___|___|
+
+      https://aws.amazon.com/amazon-linux-2/
+      [ec2-user@ip-10-0-3-71 ~]$ 
+      [ec2-user@ip-10-0-3-71 ~]$ 
+      [ec2-user@ip-10-0-3-71 ~]$ 
+      [ec2-user@ip-10-0-3-71 ~]$ ping amazon.com
+      PING amazon.com (205.251.242.103) 56(84) bytes of data.
+      ^C
+      --- amazon.com ping statistics ---
+      4 packets transmitted, 0 received, 100% packet loss, time 3067ms
+
+      [ec2-user@ip-10-0-3-71 ~]$ 
+
+Here we can see that there is no access to public internet from Private instance. Now we can create SQS VPc endpoint to access the sqs queue from private instance.
+
+[ec2-user@ip-10-0-3-71 ~]$ curl -v https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
 *   Trying 52.95.16.58:443...
 
 
@@ -21,11 +90,15 @@ $ curl -v https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
 * Closing connection 0
 
 
+Now we can add SQS vpc endpoint and recheck if we are able to access SQS queue or not.
 
-$ curl https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
+ <img width="1286" alt="image" src="https://user-images.githubusercontent.com/74225291/164767559-155d5bf7-0148-414a-acfa-aeb071888336.png">
+
+
+[ec2-user@ip-10-0-3-71 ~]$ curl https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
 <UnknownOperationException/>
 
-$ curl -v https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
+[ec2-user@ip-10-0-3-71 ~]$ curl -v https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
     *   Trying 10.0.0.229:443...
 
     * Connected to sqs.us-east-2.amazonaws.com (10.0.0.229) port 443 (#0)
@@ -69,6 +142,4 @@ $ curl -v https://sqs.us-east-2.amazonaws.com/358959533981/TestQueue.fifo
     <UnknownOperationException/>
     * Connection #0 to host sqs.us-east-2.amazonaws.com left intact
     
- <img width="1286" alt="image" src="https://user-images.githubusercontent.com/74225291/164767559-155d5bf7-0148-414a-acfa-aeb071888336.png">
-
 
